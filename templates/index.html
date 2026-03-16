@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Запись к мастеру {{ master_name }}</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 16px;
+            min-height: 100vh;
+        }
+
+        .header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+        }
+
+        .master-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .master-info {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #666666);
+            line-height: 1.5;
+        }
+
+        .step {
+            margin-bottom: 24px;
+        }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .date-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .date-card {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .date-card.selected {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            transform: scale(0.98);
+        }
+
+        .date-day {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .date-month {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .date-slots {
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .time-card {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .time-card.selected {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .services-list {
+            margin-bottom: 16px;
+        }
+
+        .service-item {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .service-item.selected {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .service-name {
+            font-weight: 500;
+        }
+
+        .service-price {
+            font-weight: 600;
+        }
+
+        .total-price {
+            font-size: 18px;
+            font-weight: 600;
+            text-align: right;
+            margin: 16px 0;
+            padding: 12px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .button {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button.secondary {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            color: var(--tg-theme-text-color, #000000);
+            margin-top: 8px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .summary {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .summary-label {
+            color: var(--tg-theme-hint-color, #666666);
+        }
+
+        .summary-value {
+            font-weight: 500;
+        }
+
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding: 0 8px;
+        }
+
+        .progress-step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .progress-step.active {
+            background: var(--tg-theme-button-color, #40a7e3);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .progress-step.completed {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .progress-line {
+            flex: 1;
+            height: 2px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            margin: 14px 4px 0 4px;
+        }
+
+        .progress-line.active {
+            background: var(--tg-theme-button-color, #40a7e3);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="master-name">{{ master_name }}</div>
+        <div class="master-info">
+            📍 {{ address }}<br>
+            📞 {{ phone }}
+        </div>
+    </div>
+
+    <div id="app">
+        <!-- Индикатор прогресса -->
+        <div class="progress-bar">
+            <div class="progress-step" id="step1-indicator">1</div>
+            <div class="progress-line" id="step1-line"></div>
+            <div class="progress-step" id="step2-indicator">2</div>
+            <div class="progress-line" id="step2-line"></div>
+            <div class="progress-step" id="step3-indicator">3</div>
+            <div class="progress-line" id="step3-line"></div>
+            <div class="progress-step" id="step4-indicator">4</div>
+        </div>
+
+        <!-- Шаг 1: Выбор даты -->
+        <div id="step1" class="step">
+            <div class="step-title">📅 Выберите дату</div>
+            <div id="dateGrid" class="date-grid"></div>
+        </div>
+
+        <!-- Шаг 2: Выбор времени -->
+        <div id="step2" class="step hidden">
+            <div class="step-title">⏰ Выберите время</div>
+            <div id="timeGrid" class="time-grid"></div>
+        </div>
+
+        <!-- Шаг 3: Выбор услуг -->
+        <div id="step3" class="step hidden">
+            <div class="step-title">💅 Выберите услуги</div>
+            <div id="servicesList" class="services-list"></div>
+            <div id="totalPrice" class="total-price">Итого: 0₽</div>
+        </div>
+
+        <!-- Шаг 4: Контактные данные -->
+        <div id="step4" class="step hidden">
+            <div class="step-title">👤 Ваши данные</div>
+
+            <div class="summary">
+                <div class="summary-item">
+                    <span class="summary-label">Дата:</span>
+                    <span class="summary-value" id="summaryDate"></span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Время:</span>
+                    <span class="summary-value" id="summaryTime"></span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Услуги:</span>
+                    <span class="summary-value" id="summaryServices"></span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Итого:</span>
+                    <span class="summary-value" id="summaryTotal"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Ваше имя</label>
+                <input type="text" id="clientName" class="form-control" placeholder="Например: Анна">
+            </div>
+
+            <div class="form-group">
+                <label>Номер телефона</label>
+                <input type="tel" id="clientPhone" class="form-control" placeholder="+7 (999) 123-45-67">
+            </div>
+        </div>
+
+        <!-- Кнопки навигации -->
+        <button id="nextBtn" class="button">Далее</button>
+        <button id="backBtn" class="button secondary hidden">Назад</button>
+        <button id="confirmBtn" class="button hidden">✅ Подтвердить запись</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.hide();
+
+        // Состояние приложения
+        let currentStep = 1;
+        let dates = [];
+        let selectedDate = null;
+        let selectedTime = null;
+        let selectedServices = [];
+        let services = [];
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', init);
+
+        async function init() {
+            await loadServices();
+            await loadDates();
+            updateStepIndicators();
+        }
+
+        async function loadServices() {
+            try {
+                const response = await fetch('/api/services');
+                services = await response.json();
+            } catch (error) {
+                console.error('Ошибка загрузки услуг:', error);
+            }
+        }
+
+        async function loadDates() {
+            try {
+                const response = await fetch('/api/dates');
+                dates = await response.json();
+                renderDates();
+            } catch (error) {
+                console.error('Ошибка загрузки дат:', error);
+                document.getElementById('dateGrid').innerHTML = '<p style="text-align: center; padding: 20px;">😔 Ошибка загрузки</p>';
+            }
+        }
+
+        async function loadSlots(date) {
+            try {
+                const response = await fetch(`/api/slots/${date}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Ошибка загрузки слотов:', error);
+                return [];
+            }
+        }
+
+        function renderDates() {
+            const grid = document.getElementById('dateGrid');
+            grid.innerHTML = '';
+
+            if (dates.length === 0) {
+                grid.innerHTML = '<p style="text-align: center; padding: 20px;">😔 Нет доступных дат</p>';
+                return;
+            }
+
+            dates.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'date-card' + (selectedDate === item.date ? ' selected' : '');
+                card.onclick = () => selectDate(item.date);
+
+                const day = new Date(item.date).getDate();
+                const month = new Date(item.date).toLocaleString('ru', { month: 'short' });
+
+                card.innerHTML = `
+                    <div class="date-day">${day}</div>
+                    <div class="date-month">${month}</div>
+                    <div class="date-slots">${item.slots.length} слотов</div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        async function selectDate(date) {
+            selectedDate = date;
+            renderDates();
+
+            // Загружаем слоты
+            const slots = await loadSlots(date);
+            renderTimes(slots);
+
+            // Переходим к шагу 2
+            goToStep(2);
+        }
+
+        function renderTimes(slots) {
+            const grid = document.getElementById('timeGrid');
+            grid.innerHTML = '';
+
+            if (slots.length === 0) {
+                grid.innerHTML = '<p style="text-align: center; padding: 20px;">😔 Нет свободного времени</p>';
+                return;
+            }
+
+            slots.forEach(time => {
+                const card = document.createElement('div');
+                card.className = 'time-card' + (selectedTime === time ? ' selected' : '');
+                card.textContent = time;
+                card.onclick = () => selectTime(time);
+                grid.appendChild(card);
+            });
+        }
+
+        function selectTime(time) {
+            selectedTime = time;
+
+            // Обновляем отображение
+            document.querySelectorAll('.time-card').forEach(card => {
+                card.classList.remove('selected');
+                if (card.textContent === time) {
+                    card.classList.add('selected');
+                }
+            });
+
+            // Активируем кнопку Далее
+            document.getElementById('nextBtn').disabled = false;
+        }
+
+        function renderServices() {
+            const container = document.getElementById('servicesList');
+            container.innerHTML = '';
+
+            services.forEach(service => {
+                const div = document.createElement('div');
+                div.className = 'service-item' + (selectedServices.includes(service.name) ? ' selected' : '');
+                div.onclick = () => toggleService(service.name);
+
+                div.innerHTML = `
+                    <span class="service-name">${service.name}</span>
+                    <span class="service-price">${service.price}₽</span>
+                `;
+
+                container.appendChild(div);
+            });
+
+            updateTotal();
+        }
+
+        function toggleService(serviceName) {
+            const index = selectedServices.indexOf(serviceName);
+            if (index === -1) {
+                selectedServices.push(serviceName);
+            } else {
+                selectedServices.splice(index, 1);
+            }
+            renderServices();
+
+            // Активируем кнопку Далее если есть услуги
+            document.getElementById('nextBtn').disabled = selectedServices.length === 0;
+        }
+
+        function updateTotal() {
+            const total = selectedServices.reduce((sum, name) => {
+                const service = services.find(s => s.name === name);
+                return sum + (service ? service.price : 0);
+            }, 0);
+
+            document.getElementById('totalPrice').textContent = `Итого: ${total}₽`;
+        }
+
+        function updateSummary() {
+            const dateObj = dates.find(d => d.date === selectedDate);
+            document.getElementById('summaryDate').textContent = dateObj ? dateObj.display : selectedDate;
+            document.getElementById('summaryTime').textContent = selectedTime;
+
+            const servicesList = selectedServices.join(', ');
+            document.getElementById('summaryServices').textContent = servicesList.substring(0, 30) + (servicesList.length > 30 ? '...' : '');
+
+            const total = selectedServices.reduce((sum, name) => {
+                const service = services.find(s => s.name === name);
+                return sum + (service ? service.price : 0);
+            }, 0);
+            document.getElementById('summaryTotal').textContent = total + '₽';
+        }
+
+        function goToStep(step) {
+            // Скрываем все шаги
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.add('hidden');
+            document.getElementById('step4').classList.add('hidden');
+
+            // Показываем нужный шаг
+            document.getElementById(`step${step}`).classList.remove('hidden');
+
+            // Обновляем кнопки
+            document.getElementById('nextBtn').classList.remove('hidden');
+            document.getElementById('backBtn').classList.remove('hidden');
+            document.getElementById('confirmBtn').classList.add('hidden');
+
+            if (step === 1) {
+                document.getElementById('backBtn').classList.add('hidden');
+                document.getElementById('nextBtn').textContent = 'Далее';
+                document.getElementById('nextBtn').disabled = !selectedDate;
+            } else if (step === 2) {
+                document.getElementById('nextBtn').textContent = 'Далее';
+                document.getElementById('nextBtn').disabled = !selectedTime;
+            } else if (step === 3) {
+                document.getElementById('nextBtn').textContent = 'Далее';
+                document.getElementById('nextBtn').disabled = selectedServices.length === 0;
+                renderServices();
+            } else if (step === 4) {
+                document.getElementById('nextBtn').classList.add('hidden');
+                document.getElementById('confirmBtn').classList.remove('hidden');
+                document.getElementById('backBtn').classList.remove('hidden');
+                updateSummary();
+            }
+
+            currentStep = step;
+            updateStepIndicators();
+        }
+
+        function updateStepIndicators() {
+            for (let i = 1; i <= 4; i++) {
+                const indicator = document.getElementById(`step${i}-indicator`);
+                const line = document.getElementById(`step${i}-line`);
+
+                if (i < currentStep) {
+                    indicator.className = 'progress-step completed';
+                    indicator.textContent = '✓';
+                    if (line) line.className = 'progress-line active';
+                } else if (i === currentStep) {
+                    indicator.className = 'progress-step active';
+                    indicator.textContent = i;
+                    if (line) line.className = 'progress-line active';
+                } else {
+                    indicator.className = 'progress-step';
+                    indicator.textContent = i;
+                    if (line) line.className = 'progress-line';
+                }
+            }
+        }
+
+        // Обработчики кнопок
+        document.getElementById('nextBtn').onclick = () => {
+            if (currentStep === 1 && selectedDate) {
+                goToStep(2);
+            } else if (currentStep === 2 && selectedTime) {
+                goToStep(3);
+            } else if (currentStep === 3 && selectedServices.length > 0) {
+                goToStep(4);
+            }
+        };
+
+        document.getElementById('backBtn').onclick = () => {
+            if (currentStep > 1) {
+                goToStep(currentStep - 1);
+            }
+        };
+
+        document.getElementById('confirmBtn').onclick = async () => {
+            const name = document.getElementById('clientName').value.trim();
+            const phone = document.getElementById('clientPhone').value.trim();
+
+            if (!name || !phone) {
+                tg.showAlert('Пожалуйста, заполните все поля');
+                return;
+            }
+
+            const total = selectedServices.reduce((sum, name) => {
+                const service = services.find(s => s.name === name);
+                return sum + (service ? service.price : 0);
+            }, 0);
+
+            // ИСПРАВЛЕНО: Добавлено поле username
+            const bookingData = {
+                user_id: tg.initDataUnsafe.user?.id || 0,
+                username: tg.initDataUnsafe.user?.username || "",  // ← добавлено!
+                name: name,
+                phone: phone,
+                date: selectedDate,
+                time: selectedTime,
+                services: selectedServices.join(', '),
+                total_price: total
+            };
+
+            // Показываем загрузку
+            tg.MainButton.setText('Отправка...');
+            tg.MainButton.show();
+
+            try {
+                const response = await fetch('/api/book', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    tg.showAlert('✅ Запись успешно создана! Скоро мастер подтвердит.');
+                    tg.close();
+                } else {
+                    tg.showAlert('❌ Ошибка: ' + result.error);
+                    tg.MainButton.hide();
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                tg.showAlert('❌ Произошла ошибка при отправке');
+                tg.MainButton.hide();
+            }
+        };
+
+        // Обновляем состояние кнопки "Далее" при выборе
+        document.getElementById('timeGrid').addEventListener('click', () => {
+            document.getElementById('nextBtn').disabled = !selectedTime;
+        });
+
+        tg.ready();
+    </script>
+</body>
+</html>
